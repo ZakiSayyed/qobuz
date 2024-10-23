@@ -45,5 +45,5 @@ def get_track_count(album_url):
     
     return track_count
     
-numoftracks = get_track_count('https://open.qobuz.com/album/eh29kwu637uka')
-print(f"Number of tracks : {numoftracks}")
+# numoftracks = get_track_count('https://open.qobuz.com/album/eh29kwu637uka')
+# print(f"Number of tracks : {numoftracks}")
