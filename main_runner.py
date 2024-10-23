@@ -8,6 +8,7 @@ import logging
 
 from super_proxy import setup_proxy_main
 from num_of_tracks import get_track_count
+from install_apks import main_install_apk
 
 # Setup logging
 logging.basicConfig(
@@ -330,23 +331,6 @@ def play_content(device, content_type, content):
 
         d.app_stop("com.qobuz.music")
 
-# Interact with the content based on configured settings
-def interact_with_content(d):
-    like_percentage = config['track_interaction']['like_percentage']
-    add_to_playlist = config['track_interaction']['add_to_playlist']
-
-    # Randomly "like" a track
-    if random.randint(1, 100) <= like_percentage:
-        logging.info(f"Liking track on device {d.serial}")
-        print(f"Liking track on device {d.serial}")
-        # Add uiautomator2 action to like a track
-
-    # Randomly add a track to playlist
-    if random.randint(1, 100) <= add_to_playlist:
-        logging.info(f"Adding track to playlist on device {d.serial}")
-        print(f"Adding track to playlist on device {d.serial}")
-        # Add uiautomator2 action to add track to playlist
-
 # Log out and switch accounts
 def logout_account(d):
     d=u2.connect(d.serial)
@@ -372,6 +356,7 @@ def logout_account(d):
         print("Clicked on OK")
         print("Successfully Logged out")
     time.sleep(5)
+
 # Main bot execution function for each device
 def bot_execution(udid):
     logging.info(f"Starting bot on device: {udid}")
@@ -390,20 +375,12 @@ def bot_execution(udid):
 
         streams = 0
         while streams < stream_limit:
-            # Step 4: Select content type and play it
             content_type, selected_content = select_content(album_urls, track_urls, artist_songs)
-
-            # Step 5: Play the content
             play_content(d, content_type, selected_content)
-
-            # Step 6: Interact with the content
-            # interact_with_content(d)
-
             streams += 1
             logging.info(f"Stream {streams} completed for account {account['username']} on device {udid}")
             print(f"Stream {streams} completed for account {account['username']} on device {udid}")
 
-        # Step 7: Check stream limit and log out
         logout_account(d)
 
     logging.info(f"Bot execution completed on device {udid}")
@@ -425,23 +402,58 @@ def get_device_udids():
     return udids
 
 # Main function to launch threads for each device
+# Main function to launch threads for each device
 def main():
-    device_udids = get_device_udids()
+    device_udids = get_device_udids()  # Step 1: Get connected devices
+    accounts, album_urls, track_urls, artist_songs = load_inputs()  # Load the accounts and input data from CSV files
+    
+    num_devices = len(device_udids)
+    num_accounts = len(accounts)
+    
+    if num_devices == 0:
+        logging.info("No devices connected. Exiting.")
+        print("No devices connected. Exiting.")
+        return
+    
+    logging.info(f"Number of connected devices: {num_devices}")
+    print(f"Number of connected devices: {num_devices}")
+    
+    if num_accounts == 0:
+        logging.info("No accounts available in accounts.csv.")
+        print("No accounts available in accounts.csv.")
+        return
+    
+    logging.info(f"Total accounts available: {num_accounts}")
+    print(f"Total accounts available: {num_accounts}")
+    
+    # Divide the accounts into chunks based on the number of devices
+    chunk_size = num_devices
+    for i in range(0, num_accounts, chunk_size):
+        threads = []
+        # Assign each account to a device, if available
+        accounts_chunk = accounts[i:i+chunk_size]
+        for j, account in enumerate(accounts_chunk):
+            device_udid = device_udids[j]  # Assign account to each device in sequence
+            logging.info(f"Assigning account {account['username']} to device {device_udid}")
+            print(f"Assigning account {account['username']} to device {device_udid}")
+            # Create a new thread for each device and start it
+            t = threading.Thread(target=bot_execution, args=(device_udid,))
+            threads.append(t)
+            t.start()
 
-    threads = []
-    for udid in device_udids:
-        # Create a new thread for each device and start it
-        t = threading.Thread(target=bot_execution, args=(udid,))
-        threads.append(t)
-        t.start()
+        # Wait for all threads in this batch to complete
+        for t in threads:
+            t.join()
 
-    # Wait for all threads to complete
-    for t in threads:
-        t.join()
+        logging.info(f"Completed account execution batch {i // chunk_size + 1}")
+        print(f"Completed account execution batch {i // chunk_size + 1}")
 
-    logging.info("All devices have completed bot execution.")
-    print("All devices have completed bot execution.")
+    logging.info("All accounts have been processed.")
+    print("All accounts have been processed.")
+
+
 
 # Entry point for the script
 if __name__ == "__main__":
+    main_install_apk()
     main()

@@ -31,7 +31,7 @@ def run_adb_command(command):
 
 def setup_proxy_main(host, port, username, password, device):
 
-    packages = run_adb_command('shell pm list packages')
+    packages = run_adb_command(f'-s {device.serial} shell pm list packages')
     if packages is None:
         print("Failed to retrieve package list.")
         log_action("Failed to retrieve package list.")
@@ -42,9 +42,9 @@ def setup_proxy_main(host, port, username, password, device):
         log_action("SuperProxy app is not installed.")
         return
     
-    subprocess.call("adb shell pm clear com.scheler.superproxy --user 0 --cache")
+    subprocess.call(f"adb -s {device.serial} shell pm clear com.scheler.superproxy --user 0 --cache")
     time.sleep(2)
-    subprocess.call("adb shell pm clear com.scheler.superproxy")
+    subprocess.call(f"adb -s {device.serial} shell pm clear com.scheler.superproxy")
 
     print("Adding proxy details..")
 
