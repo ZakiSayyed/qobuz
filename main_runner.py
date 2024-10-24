@@ -64,37 +64,41 @@ def load_inputs():
     return accounts, album_urls, track_urls, artist_songs
 
 # Assign proxy for each account
-def assign_proxy(device, account):
+def assign_proxy(d, username, proxyserver, proxyport, pusername, ppassword):
 
-    proxyserver =  account['pserver']
-    proxyport = account['pport']
-    username = account['pusername']
-    password = account['ppassword']
-
-    logging.info(f"Assigning proxy : \nProxy Server : {proxyserver}\nProxy Port : {proxyport}\nUsername : {username}\nPassword : {password}")
-    print(f"Assigning proxy : \nProxy Server : {proxyserver}\nProxy Port : {proxyport}\nUsername : {username}\nPassword : {password}")
+    logging.info(f"Device ID : {d.serial} | Proxy Server : {proxyserver} | Proxy Port : {proxyport} | Username : {pusername} | Password : {ppassword} | Username : {username}")
+    print(f"Device ID : {d.serial} | Proxy Server : {proxyserver} | Proxy Port : {proxyport} | Username : {pusername} | Password : {ppassword} | Username : {username}")
     # Implement proxy binding logic here using third-party proxy app (e.g., super_proxy or oxy proxy manager)
-    setup_proxy_main(proxyserver,proxyport,username,password,device)
+    setup_proxy_main(proxyserver,proxyport,pusername,ppassword,d)
 
 # Log into Qobuz
-def login_qobuz(d, account):
-    d=u2.connect(d.serial)
+def login_qobuz(device, username, password):
+    d=u2.connect(device.serial)
 
-    username = account['username']
-    password = account['password']
-
+    subprocess.call(f"adb -s {device.serial} shell pm clear com.qobuz.music --user 0 --cache")
+    time.sleep(2)
+    subprocess.call(f"adb -s {device.serial} shell pm clear com.qobuz.music")
+    
     # Start the Qobuz app and navigate to login using uiautomator2 on the device 'd'
     d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
     time.sleep(5)
 
+    if d(text="EXPLORE").exists:
+        d(text="No, thanks").click()
+    elif d(text="Explore").exists:
+        d(text="No, thanks").click()
+
+    time.sleep(5)
+    
     if d(text="Discover"):
         print("Logged in Already")
         d.app_stop("com.qobuz.music")
         return
 
-    logging.info(f"Logging into Qobuz with email: {account['username']} on device {d.serial}")
-    print(f"Logging into Qobuz with email: {account['username']} on device {d.serial}")
-
+    logging.info(f"Device ID : {device.serial}\nLogging into Qobuz with email: {username} on device {device.serial}")
+    print(f"Logging into Qobuz with email: {username} on device {device.serial}")
+    time.sleep(5)
+    
     if d(text='Enter your email address').exists:
         d(text='Enter your email address').click()
         d.send_keys(username)
@@ -130,11 +134,14 @@ def login_qobuz(d, account):
     if d(text='Allow').exists:
         d(text='Allow').click()
         print("Clicked on Allow access")
-        
+    elif d(text='ALLOW').exists:
+        d(text='ALLOW').click()
+        print("Clicked on ALLOW access")
+    
     time.sleep(2)
 
 # Randomly select content type based on percentage distribution
-def select_content(album_urls, track_urls, artist_songs):
+def select_content(d, album_urls, track_urls, artist_songs):
     content_type = random.choices(
         ['track', 'album', 'artist_search'],
         weights=[
@@ -147,15 +154,15 @@ def select_content(album_urls, track_urls, artist_songs):
 
     if content_type == 'track':
         selected_content = random.choice(track_urls)
-        logging.info(f"Selected track: {selected_content}")
+        logging.info(f"Device ID : {d.serial}\nSelected track: {selected_content}")
         print(f"Selected track: {selected_content}")
     elif content_type == 'album':
         selected_content = random.choice(album_urls)
-        logging.info(f"Selected album: {selected_content}")
+        logging.info(f"Device ID : {d.serial}\nSelected album: {selected_content}")
         print(f"Selected album: {selected_content}")
     elif content_type == 'artist_search':
         selected_content = random.choice(artist_songs)
-        logging.info(f"Selected artist/song search: {selected_content}")
+        logging.info(f"Device ID : {d.serial}\nSelected artist/song search: {selected_content}")
         print(f"Selected artist/song search: {selected_content}")
 
     return content_type, selected_content
@@ -182,7 +189,7 @@ def play_content(device, content_type, content):
         d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
         time.sleep(6)
 
-        logging.info(f"Selected track: {selected_content}")
+        logging.info(f"Device ID : {device.serial}\nSelected track: {selected_content}")
         print(f"Selected track: {selected_content}")
 
         if d(description='Play').exists:
@@ -205,7 +212,6 @@ def play_content(device, content_type, content):
                     print("Song Paused")
                     song_paused = True  # Mark the song as paused but continue with rest of the logic
 
-        # Since like_percentage and add_to_playlist_percentage are 100, both actions will always be triggered
         should_like = random.randint(1, 100) <= like_percentage
         should_add_to_playlist = random.randint(1, 100) <= add_to_playlist_percentage
 
@@ -238,7 +244,7 @@ def play_content(device, content_type, content):
         d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
         time.sleep(6)
 
-        logging.info(f"Selected album: {selected_content}")
+        logging.info(f"Device ID : {device.serial}\nSelected album: {selected_content}")
         print(f"Selected album: {selected_content}")
 
         if d(description='Play').exists:
@@ -332,57 +338,54 @@ def play_content(device, content_type, content):
         d.app_stop("com.qobuz.music")
 
 # Log out and switch accounts
-def logout_account(d):
-    d=u2.connect(d.serial)
-    d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
-    time.sleep(5)
-    logging.info(f"Logging out on device {d.serial}")
-    print(f"Logging out on device {d.serial}")
-    # Add uiautomator2 action to log out
-    if d(description='Settings').exists:
-        d(description='Settings').click()
-        print("Clicked on Settings")
+# def logout_account(device):
+#     d=u2.connect(device.serial)
+#     d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
+#     time.sleep(5)
+#     logging.info(f"Logging out on device {device.serial}")
+#     print(f"Logging out on device {device.serial}")
+#     # Add uiautomator2 action to log out
+#     if d(description='Settings').exists:
+#         d(description='Settings').click()
+#         print("Clicked on Settings")
     
-    time.sleep(3)
+#     time.sleep(3)
     
-    if d(text='Log out').exists:
-        d(text='Log out').click()
-        print("Clicked on Logout")
+#     if d(text='Log out').exists:
+#         d(text='Log out').click()
+#         print("Clicked on Logout")
     
-    time.sleep(2)
+#     time.sleep(2)
 
-    if d(text='OK').exists:
-        d(text='OK').click()
-        print("Clicked on OK")
-        print("Successfully Logged out")
-    time.sleep(5)
+#     if d(text='OK').exists:
+#         d(text='OK').click()
+#         print("Clicked on OK")
+#         print("Successfully Logged out")
+#     time.sleep(5)
 
 # Main bot execution function for each device
-def bot_execution(udid):
+def bot_execution(udid, username, password, proxyserver, proxyport, pusername, ppassword, album_urls, track_urls, artist_songs):
     logging.info(f"Starting bot on device: {udid}")
     print(f"Starting bot on device: {udid}")
     d = u2.connect(udid)  # Connect to the device with specific UDID
-    accounts, album_urls, track_urls, artist_songs = load_inputs()
 
-    for account in accounts:
-        assign_proxy(d, account)  # Step 2: Assign proxy and bind it
+    assign_proxy(d, username, proxyserver, proxyport, pusername, ppassword)  # Step 2: Assign proxy and bind it
+    
+    login_qobuz(d, username, password)   # Step 3: Login to Qobuz
 
-        login_qobuz(d, account)   # Step 3: Login to Qobuz
+    stream_limit = random.randint(config['stream_limit_min'], config['stream_limit_max'])
+    logging.info(f"Stream limit for account {username} on device {udid}: {stream_limit}")
+    print(f"Stream limit for account {username} on device {udid}: {stream_limit}")
 
-        stream_limit = random.randint(config['stream_limit_min'], config['stream_limit_max'])
-        logging.info(f"Stream limit for account {account['username']} on device {udid}: {stream_limit}")
-        print(f"Stream limit for account {account['username']} on device {udid}: {stream_limit}")
+    streams = 0
+    while streams < stream_limit:
+        content_type, selected_content = select_content(d, album_urls, track_urls, artist_songs)
+        play_content(d, content_type, selected_content)
+        streams += 1
+        logging.info(f"Stream {streams} completed for account {username} on device {udid}")
+        print(f"Stream {streams} completed for account {username} on device {udid}")
 
-        streams = 0
-        while streams < stream_limit:
-            content_type, selected_content = select_content(album_urls, track_urls, artist_songs)
-            play_content(d, content_type, selected_content)
-            streams += 1
-            logging.info(f"Stream {streams} completed for account {account['username']} on device {udid}")
-            print(f"Stream {streams} completed for account {account['username']} on device {udid}")
-
-        logout_account(d)
-
+    # logout_account(d)
     logging.info(f"Bot execution completed on device {udid}")
     print(f"Bot execution completed on device {udid}")
 
@@ -401,7 +404,6 @@ def get_device_udids():
     print(f"Connected devices: {udids}")
     return udids
 
-# Main function to launch threads for each device
 # Main function to launch threads for each device
 def main():
     device_udids = get_device_udids()  # Step 1: Get connected devices
@@ -437,7 +439,14 @@ def main():
             logging.info(f"Assigning account {account['username']} to device {device_udid}")
             print(f"Assigning account {account['username']} to device {device_udid}")
             # Create a new thread for each device and start it
-            t = threading.Thread(target=bot_execution, args=(device_udid,))
+            username = account['username']
+            password = account['password']
+            proxyserver =  account['pserver']
+            proxyport = account['pport']
+            pusername = account['pusername']
+            ppassword = account['ppassword'] 
+
+            t = threading.Thread(target=bot_execution, args=(device_udid, username,password,proxyserver, proxyport, pusername, ppassword, album_urls, track_urls, artist_songs,))
             threads.append(t)
             t.start()
 

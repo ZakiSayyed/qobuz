@@ -24,10 +24,6 @@ def run_adb_command(command):
         print(f"Error executing command '{command}': {e.stderr.strip()}")
         log_action(f"Error executing command '{command}': {e.stderr.strip()}")
         return None
-    
-# host = "standard.vital-proxies.com"
-# port = "8603"
-# password = "glzhaitymdl0ydai"
 
 def setup_proxy_main(host, port, username, password, device):
 
@@ -82,8 +78,6 @@ def setup_proxy_main(host, port, username, password, device):
         print(f"Error accessing HTTP: {e}")
         log_action(f"Error accessing HTTP: {e}")
 
-    subprocess.call(f"adb -s {device.serial} shell input keyevent 4")
-
     time.sleep(3)
     try:
         post_xpath="/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View[2]/android.widget.EditText[3]"
@@ -92,6 +86,14 @@ def setup_proxy_main(host, port, username, password, device):
             print("Clicked on Server")
             log_action("Clicked on Server")
             d.send_keys(host)
+        else:
+            subprocess.call(f"adb -s {device.serial} shell input keyevent 4")
+            post_xpath="/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View[2]/android.widget.EditText[3]"
+            if d.xpath(post_xpath).exists:  # Check if the element exists
+                d.xpath(post_xpath).click()  # Click the element if found     
+                print("Clicked on Server")
+                log_action("Clicked on Server")
+                d.send_keys(host)
     except Exception as e:
         print(f"Error accessing Server: {e}")
         log_action(f"Error accessing Server: {e}")
@@ -131,11 +133,18 @@ def setup_proxy_main(host, port, username, password, device):
     time.sleep(5)
     try:
         post_xpath="/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.widget.ScrollView/android.widget.EditText[6]"
+        post_xpath1='/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View[2]/android.widget.EditText[6]'
         if d.xpath(post_xpath).exists:  # Check if the element exists
             d.xpath(post_xpath).click()  # Click the element if found        
             print("Clicked on Username")
             log_action("Clicked on Username")
             d.send_keys(username)
+        elif d.xpath(post_xpath1).exists:  # Check if the element exists
+            d.xpath(post_xpath1).click()  # Click the element if found        
+            print("Clicked on Username")
+            log_action("Clicked on Username")
+            d.send_keys(username)            
+
     except Exception as e:
         print(f"Error accessing Username: {e}")
         log_action(f"Error accessing Username: {e}")
@@ -143,11 +152,18 @@ def setup_proxy_main(host, port, username, password, device):
     time.sleep(5)
     try:
         post_xpath="/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.widget.ScrollView/android.widget.EditText[7]"
+        post_xpath1="/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View[2]/android.widget.EditText[7]"
         if d.xpath(post_xpath).exists:  # Check if the element exists
             d.xpath(post_xpath).click()  # Click the element if found    
             print("Clicked on Password")
             log_action("Clicked on Password")
             d.send_keys(password)
+        elif d.xpath(post_xpath1).exists:  # Check if the element exists
+            d.xpath(post_xpath1).click()  # Click the element if found    
+            print("Clicked on Password")
+            log_action("Clicked on Password")
+            d.send_keys(password)
+
     except Exception as e:
         print(f"Error accessing Password: {e}")
         log_action(f"Error accessing Password: {e}")
