@@ -238,7 +238,7 @@ def play_content(device, content_type, content):
                 print("Song added to playlist!")
         
         d.app_stop("com.qobuz.music")
-
+        del d  # Disconnect u2 after stopping the app
     elif content_type == 'album':
         time.sleep(5)
         d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
