@@ -81,11 +81,18 @@ def setup_proxy_main(host, port, username, password, device):
     time.sleep(3)
     try:
         post_xpath="/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View[2]/android.widget.EditText[3]"
+        post_xpath1='//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View[2]/android.widget.EditText[3]'
+
         if d.xpath(post_xpath).exists:  # Check if the element exists
             d.xpath(post_xpath).click()  # Click the element if found     
             print("Clicked on Server")
             log_action("Clicked on Server")
             d.send_keys(host)
+        elif d.xpath(post_xpath1).exists:  # Check if the element exists
+            d.xpath(post_xpath1).click()  # Click the element if found     
+            print("Clicked on Server")
+            log_action("Clicked on Server")
+            d.send_keys(host)            
         else:
             subprocess.call(f"adb -s {device.serial} shell input keyevent 4")
             post_xpath="/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View[2]/android.widget.EditText[3]"

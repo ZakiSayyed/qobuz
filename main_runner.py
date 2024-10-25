@@ -93,6 +93,7 @@ def login_qobuz(device, username, password):
     if d(text="Discover"):
         print("Logged in Already")
         d.app_stop("com.qobuz.music")
+        del d  # Disconnect u2 after stopping the app
         return
 
     logging.info(f"Device ID : {device.serial}\nLogging into Qobuz with email: {username} on device {device.serial}")
@@ -276,6 +277,7 @@ def play_content(device, content_type, content):
         time.sleep(3)
 
         d.app_stop("com.qobuz.music")
+        del d  # Disconnect u2 after stopping the app
 
     elif content_type == 'artist_search':
 
@@ -336,7 +338,7 @@ def play_content(device, content_type, content):
                     break
 
         d.app_stop("com.qobuz.music")
-
+        del d  # Disconnect u2 after stopping the app
 # Log out and switch accounts
 # def logout_account(device):
 #     d=u2.connect(device.serial)
