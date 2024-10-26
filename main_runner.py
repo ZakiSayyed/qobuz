@@ -6,7 +6,7 @@ import threading
 import subprocess
 import logging
 
-from super_proxy import setup_proxy_main
+# from super_proxy import setup_proxy_main
 from num_of_tracks import get_track_count
 from install_apks import main_install_apk
 
@@ -64,12 +64,14 @@ def load_inputs():
     return accounts, album_urls, track_urls, artist_songs
 
 # Assign proxy for each account
-def assign_proxy(d, username, proxyserver, proxyport, pusername, ppassword):
+def assign_proxy(d, username, proxyserver, proxyport):
 
-    logging.info(f"Device ID : {d.serial} | Proxy Server : {proxyserver} | Proxy Port : {proxyport} | Username : {pusername} | Password : {ppassword} | Username : {username}")
-    print(f"Device ID : {d.serial} | Proxy Server : {proxyserver} | Proxy Port : {proxyport} | Username : {pusername} | Password : {ppassword} | Username : {username}")
+    logging.info(f"Device ID : {d.serial} | Proxy Server : {proxyserver} | Proxy Port : {proxyport}") #| Username : {pusername} | Password : {ppassword} | Username : {username}")
+    print(f"Device ID : {d.serial} | Proxy Server : {proxyserver} | Proxy Port : {proxyport}") # | Username : {pusername} | Password : {ppassword} | Username : {username}")
     # Implement proxy binding logic here using third-party proxy app (e.g., super_proxy or oxy proxy manager)
-    setup_proxy_main(proxyserver,proxyport,pusername,ppassword,d)
+    # setup_proxy_main(proxyserver,proxyport,pusername,ppassword,d)
+    subprocess.call(f"adb -s {d.serial} shell settings put global http_proxy {proxyserver}:{proxyport}")
+    time.sleep(3)
 
 # Log into Qobuz
 def login_qobuz(device, username, password):
@@ -366,12 +368,12 @@ def play_content(device, content_type, content):
 #     time.sleep(5)
 
 # Main bot execution function for each device
-def bot_execution(udid, username, password, proxyserver, proxyport, pusername, ppassword, album_urls, track_urls, artist_songs):
+def bot_execution(udid, username, password, proxyserver, proxyport, album_urls, track_urls, artist_songs):
     logging.info(f"Starting bot on device: {udid}")
     print(f"Starting bot on device: {udid}")
     d = u2.connect(udid)  # Connect to the device with specific UDID
 
-    assign_proxy(d, username, proxyserver, proxyport, pusername, ppassword)  # Step 2: Assign proxy and bind it
+    assign_proxy(d, username, proxyserver, proxyport)  # Step 2: Assign proxy and bind it
     
     login_qobuz(d, username, password)   # Step 3: Login to Qobuz
 
@@ -445,10 +447,10 @@ def main():
             password = account['password']
             proxyserver =  account['pserver']
             proxyport = account['pport']
-            pusername = account['pusername']
-            ppassword = account['ppassword'] 
+            # pusername = account['pusername']
+            # ppassword = account['ppassword'] 
 
-            t = threading.Thread(target=bot_execution, args=(device_udid, username,password,proxyserver, proxyport, pusername, ppassword, album_urls, track_urls, artist_songs,))
+            t = threading.Thread(target=bot_execution, args=(device_udid, username,password,proxyserver, proxyport, album_urls, track_urls, artist_songs,))
             threads.append(t)
             t.start()
 
@@ -461,8 +463,6 @@ def main():
 
     logging.info("All accounts have been processed.")
     print("All accounts have been processed.")
-
-
 
 # Entry point for the script
 if __name__ == "__main__":
