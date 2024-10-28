@@ -6,6 +6,7 @@ import threading
 import subprocess
 import logging
 import os
+import requests
 
 total_streams = 1
 
@@ -79,73 +80,78 @@ def assign_proxy(d, username, proxyserver, proxyport):
 # Log into Qobuz
 def login_qobuz(device, username, password):
     d=u2.connect(device.serial)
+    with requests.Session() as session:  # Creates a session for reusing and closing connections
 
-    subprocess.call(f"adb -s {device.serial} shell pm clear com.qobuz.music --user 0 --cache")
-    time.sleep(2)
-    subprocess.call(f"adb -s {device.serial} shell pm clear com.qobuz.music")
-    
-    # Start the Qobuz app and navigate to login using uiautomator2 on the device 'd'
-    d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
-    time.sleep(5)
-
-    if d(text="EXPLORE").exists:
-        d(text="No, thanks").click()
-    elif d(text="Explore").exists:
-        d(text="No, thanks").click()
-
-    time.sleep(5)
-    
-    if d(text="Discover"):
-        print("Logged in Already")
-        d.app_stop("com.qobuz.music")
-        del d  # Disconnect u2 after stopping the app
-        return
-
-    logging.info(f"Device ID : {device.serial}\nLogging into Qobuz with email: {username} on device {device.serial}")
-    print(f"Logging into Qobuz with email: {username} on device {device.serial}")
-    time.sleep(5)
-    
-    if d(text='Enter your email address').exists:
-        d(text='Enter your email address').click()
-        d.send_keys(username)
-    else:
-        print("Unable to click on Enter Email")
-
-    time.sleep(3)
-
-    if d(text='Continue').exists:
-        d(text='Continue').click()
-
-    time.sleep(3)
-
-    if d(text='Enter your password').exists:
-        d(text='Enter your password').click()
-        d.send_keys(password)
-
-    time.sleep(3)
-
-    if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').exists:
-        d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').click()
-    else:
-        print("Error")
-    
-    time.sleep(3)
-
-    if d(text='YES').exists:
-        d(text='YES').click()
-        print("Clicked on YES")
+        subprocess.call(f"adb -s {device.serial} shell pm clear com.qobuz.music --user 0 --cache")
+        time.sleep(2)
+        subprocess.call(f"adb -s {device.serial} shell pm clear com.qobuz.music")
         
-    time.sleep(3)
+        # Start the Qobuz app and navigate to login using uiautomator2 on the device 'd'
+        d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
+        time.sleep(5)
+        if d(resourceId='com.android.systemui:id/notification_stack_scroller').exists:
+            print("Notification bar opened")
+            subprocess.call(f'adb -s {device.serial} shell input swipe 500 1500 500 500 300')
+            print("Notification bar closed")
 
-    if d(text='Allow').exists:
-        d(text='Allow').click()
-        print("Clicked on Allow access")
-    elif d(text='ALLOW').exists:
-        d(text='ALLOW').click()
-        print("Clicked on ALLOW access")
-    
-    time.sleep(2)
+        if d(text="EXPLORE").exists:
+            d(text="No, thanks").click()
+        elif d(text="Explore").exists:
+            d(text="No, thanks").click()
 
+        time.sleep(5)
+        
+        if d(text="Discover"):
+            print("Logged in Already")
+            d.app_stop("com.qobuz.music")
+            del d  # Disconnect u2 after stopping the app
+            return
+
+        logging.info(f"Device ID : {device.serial}\nLogging into Qobuz with email: {username} on device {device.serial}")
+        print(f"Logging into Qobuz with email: {username} on device {device.serial}")
+        time.sleep(5)
+        
+        if d(text='Enter your email address').exists:
+            d(text='Enter your email address').click()
+            d.send_keys(username)
+        else:
+            print("Unable to click on Enter Email")
+
+        time.sleep(3)
+
+        if d(text='Continue').exists:
+            d(text='Continue').click()
+
+        time.sleep(3)
+
+        if d(text='Enter your password').exists:
+            d(text='Enter your password').click()
+            d.send_keys(password)
+
+        time.sleep(3)
+
+        if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').exists:
+            d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').click()
+        else:
+            print("Error")
+        
+        time.sleep(3)
+
+        if d(text='YES').exists:
+            d(text='YES').click()
+            print("Clicked on YES")
+            
+        time.sleep(3)
+
+        if d(text='Allow').exists:
+            d(text='Allow').click()
+            print("Clicked on Allow access")
+        elif d(text='ALLOW').exists:
+            d(text='ALLOW').click()
+            print("Clicked on ALLOW access")
+        
+        time.sleep(2)
+        del d
 # Randomly select content type based on percentage distribution
 def select_content(d, album_urls, track_urls, artist_songs):
     content_type = random.choices(
@@ -176,181 +182,216 @@ def select_content(d, album_urls, track_urls, artist_songs):
 # Play selected content for a random duration
 def play_content(device, content_type, content):
     selected_content = content[0]
-    d = u2.connect(device.serial)
-    print(device.serial)
-    
-    play_duration = random.randint(config['play_time_min'], config['play_time_max'])
-    minutes = play_duration // 60
-    seconds = play_duration % 60
-    
-    # Format the output to MM:SS
-    duration = f"{minutes:02}:{seconds:02}"
-    print(f"Play duration is : {duration}")
-    # Set 100% chance for testing
-    like_percentage = config['track_interaction']['like_percentage']  
-    add_to_playlist_percentage = config['track_interaction']['add_to_playlist']  
-
-    if content_type == 'track':
-        time.sleep(5)
-        d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
-        time.sleep(6)
-
-        logging.info(f"Device ID : {device.serial}\nSelected track: {selected_content}")
-        print(f"Selected track: {selected_content}")
-
-        if d(description='Play').exists:
-            d(description='Play').click()
-            print("Clicked on Play")    
-
-        time.sleep(3)
-
-        if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').exists:
-            d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').click()
-            print("Clicked on the Song being played")
+    with requests.Session() as session:
+        d = u2.connect(device.serial)
+        print(device.serial)
         
-        time.sleep(3)
-
-        song_paused = False
-        while not song_paused:
-            if d(text=f'{duration}').exists():
-                if d(resourceId='com.qobuz.music:id/playPauseBtn').exists:
-                    d(resourceId='com.qobuz.music:id/playPauseBtn').click()
-                    print("Song Paused")
-                    song_paused = True  # Mark the song as paused but continue with rest of the logic
-
-        should_like = random.randint(1, 100) <= like_percentage
-        should_add_to_playlist = random.randint(1, 100) <= add_to_playlist_percentage
-
-        # Perform the like action
-        if should_like:
-            if d(resourceId='com.qobuz.music:id/addRemoveFavoritesImageView').exists:
-                d(resourceId='com.qobuz.music:id/addRemoveFavoritesImageView').click()
-                print("Song liked!")
-
-        # Perform the add to playlist action
-        if should_add_to_playlist:
-            if d(resourceId='com.qobuz.music:id/optionsImage').exists:
-                d(resourceId='com.qobuz.music:id/optionsImage').click()
-                print("Clicked on Options")
-                if d(text='Add to playlists').exists:
-                    d(text='Add to playlists').click()
-                    print("Clicked on Add to Playlists")
-                time.sleep(3)
-                if d(resourceId='com.qobuz.music:id/subtitleText', instance=1).exists:
-                    d(resourceId='com.qobuz.music:id/subtitleText', instance=1).click()
-                    print("Clicked on the Playlist")
-                    time.sleep(5)
-
-                print("Song added to playlist!")
+        play_duration = random.randint(config['play_time_min'], config['play_time_max'])
+        minutes = play_duration // 60
+        seconds = play_duration % 60
         
-        d.app_stop("com.qobuz.music")
-        del d  # Disconnect u2 after stopping the app
-    elif content_type == 'album':
-        time.sleep(5)
-        d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
-        time.sleep(6)
+        # Format the output to MM:SS
+        duration = f"{minutes:02}:{seconds:02}"
+        print(f"Play duration is : {duration}")
+        # Set 100% chance for testing
+        like_percentage = config['track_interaction']['like_percentage']  
+        add_to_playlist_percentage = config['track_interaction']['add_to_playlist']  
 
-        logging.info(f"Device ID : {device.serial}\nSelected album: {selected_content}")
-        print(f"Selected album: {selected_content}")
+        if content_type == 'track':
+            time.sleep(5)
+            d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
+            time.sleep(6)
 
-        if d(description='Play').exists:
-            d(description='Play').click()
-            print("Clicked on Play")    
-        
-        time.sleep(3)
+            logging.info(f"Device ID : {device.serial}\nSelected track: {selected_content}")
+            print(f"Selected track: {selected_content}")
 
-        if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').exists:
-            d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').click()
-            print("Clicked on the Song being played")
-        
-        time.sleep(3)
+            if d(text='Playback paused').exists:
+                print("Playback paused")
+                logging.info("Playback paused")
+                return
+            
+            if d(description='Play').exists:
+                d(description='Play').click()
+                print("Clicked on Play")    
 
-        numoftracks = get_track_count(selected_content)
-        print(f"Number of tracks : {numoftracks}")
+            time.sleep(3)
 
-        count = 0
-        print(f"Skipping {numoftracks} tracks")
-        while count < numoftracks:
-            if d(text=f'{duration}').exists():
-                if d(resourceId='com.qobuz.music:id/skipNextBtn').exists:
-                    d(resourceId='com.qobuz.music:id/skipNextBtn').click()
-                    print("Song Skipped")
-                    count += 1
-                else:
-                    print("Skip button not found.")
-        
-        time.sleep(3)
+            if d(text='Playback paused').exists:
+                print("Playback paused")
+                logging.info("Playback paused")
+                return
+            
+            if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').exists:
+                d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').click()
+                print("Clicked on the Song being played")
+            
+            time.sleep(3)
 
-        d.app_stop("com.qobuz.music")
-        del d  # Disconnect u2 after stopping the app
+            song_paused = False
+            while not song_paused:
+                if d(text=f'{duration}').exists():
+                    if d(resourceId='com.qobuz.music:id/playPauseBtn').exists:
+                        d(resourceId='com.qobuz.music:id/playPauseBtn').click()
+                        print("Song Paused")
+                        song_paused = True  # Mark the song as paused but continue with rest of the logic
 
-    elif content_type == 'artist_search':
+            should_like = random.randint(1, 100) <= like_percentage
+            should_add_to_playlist = random.randint(1, 100) <= add_to_playlist_percentage
 
-        d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
-        time.sleep(5)
-        if d(text="Samsung Keyboard").exists:
-            d(text="Agree").click()
-            print("Clicked on Agree")
-            logging.info("Clicked on Agree")
-        elif d(resourceId='android:id/button1').exists:
-            d(resourceId='android:id/button1').click()
-            print("Clicked on Agree")
-            logging.info("Clicked on Agree")
-        while True:
-            if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').exists:
-                d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').click()
-                print("Removed the existing text in search")
+            # Perform the like action
+            if should_like:
+                if d(resourceId='com.qobuz.music:id/addRemoveFavoritesImageView').exists:
+                    d(resourceId='com.qobuz.music:id/addRemoveFavoritesImageView').click()
+                    print("Song liked!")
 
-            if d(text='Search').exists:
-                d(text='Search').click()
-                print("Clicked on Search")
-                break
-            else:
-                subprocess.call(f"adb -s {device.serial} shell input keyevent 4")
-                time.sleep(3)
+            # Perform the add to playlist action
+            if should_add_to_playlist:
+                if d(resourceId='com.qobuz.music:id/optionsImage').exists:
+                    d(resourceId='com.qobuz.music:id/optionsImage').click()
+                    print("Clicked on Options")
+                    if d(text='Add to playlists').exists:
+                        d(text='Add to playlists').click()
+                        print("Clicked on Add to Playlists")
+                    time.sleep(3)
+                    if d(resourceId='com.qobuz.music:id/subtitleText', instance=1).exists:
+                        d(resourceId='com.qobuz.music:id/subtitleText', instance=1).click()
+                        print("Clicked on the Playlist")
+                        time.sleep(5)
+
+                    print("Song added to playlist!")
+            
+            d.app_stop("com.qobuz.music")
+            del d  # Disconnect u2 after stopping the app
+        elif content_type == 'album':
+            time.sleep(5)
+            d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
+            time.sleep(6)
+
+            logging.info(f"Device ID : {device.serial}\nSelected album: {selected_content}")
+            print(f"Selected album: {selected_content}")
+
+            if d(text='Playback paused').exists:
+                print("Playback paused")
+                logging.info("Playback paused")
+                return
+            
+            if d(description='Play').exists:
+                d(description='Play').click()
+                print("Clicked on Play")    
+            
+            time.sleep(3)
+            
+            if d(text='Playback paused').exists:
+                print("Playback paused")
+                logging.info("Playback paused")
+                return
+            
+            if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').exists:
+                d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').click()
+                print("Clicked on the Song being played")
+            
+            time.sleep(3)
+
+            numoftracks = get_track_count(selected_content)
+            print(f"Number of tracks : {numoftracks}")
+
+            count = 0
+            print(f"Skipping {numoftracks} tracks")
+            while count < numoftracks:
+                if d(text=f'{duration}').exists():
+                    if d(resourceId='com.qobuz.music:id/skipNextBtn').exists:
+                        d(resourceId='com.qobuz.music:id/skipNextBtn').click()
+                        print("Song Skipped")
+                        count += 1
+                    else:
+                        print("Skip button not found.")
+            
+            time.sleep(3)
+
+            d.app_stop("com.qobuz.music")
+            del d  # Disconnect u2 after stopping the app
+
+        elif content_type == 'artist_search':
+
+            d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
+            time.sleep(5)
+            if d(resourceId='com.android.systemui:id/notification_stack_scroller').exists:
+                print("Notification bar opened")
+                subprocess.call(f'adb -s {device.serial} shell input swipe 500 1500 500 500 300')
+                print("Notification bar closed")
+            if d(text="Samsung Keyboard").exists:
+                d(text="Agree").click()
+                print("Clicked on Agree")
+                logging.info("Clicked on Agree")
+            elif d(resourceId='android:id/button1').exists:
+                d(resourceId='android:id/button1').click()
+                print("Clicked on Agree")
+                logging.info("Clicked on Agree")
+            while True:
                 if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').exists:
                     d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').click()
                     print("Removed the existing text in search")
 
-        time.sleep(3)
-
-        if d(description='Search').exists:
-            d(description='Search').click()
-            print("Clicked on Search")
-
-        d.send_keys(selected_content)    
-
-        time.sleep(3)
-
-        if d(text='Tracks').exists:
-            d(text='Tracks').click()
-            print("Clicked on Tracks")
-
-        time.sleep(2)
-
-        if d(description='Options', instance=0).exists:
-            d(description='Options', instance=0).click()
-            print("Clicked on Options")
-
-        time.sleep(6)
-
-        if d(description='Play').exists:
-            d(description='Play').click()
-            print("Clicked on Play")    
-
-        if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').exists:
-            d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').click()
-            print("Clicked on the Song being played")
-
-        while True:
-            if d(text=f'{duration}').exists():
-                if d(resourceId='com.qobuz.music:id/playPauseBtn').exists:
-                    d(resourceId='com.qobuz.music:id/playPauseBtn').click()
-                    print("Song Paused")
+                if d(text='Search').exists:
+                    d(text='Search').click()
+                    print("Clicked on Search")
                     break
+                else:
+                    subprocess.call(f"adb -s {device.serial} shell input keyevent 4")
+                    time.sleep(3)
+                    if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').exists:
+                        d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').click()
+                        print("Removed the existing text in search")
 
-        d.app_stop("com.qobuz.music")
-        del d
+            time.sleep(3)
+
+            if d(description='Search').exists:
+                d(description='Search').click()
+                print("Clicked on Search")
+
+            d.send_keys(selected_content)    
+
+            time.sleep(3)
+
+            if d(text='Tracks').exists:
+                d(text='Tracks').click()
+                print("Clicked on Tracks")
+
+            time.sleep(2)
+
+            if d(description='Options', instance=0).exists:
+                d(description='Options', instance=0).click()
+                print("Clicked on Options")
+
+            time.sleep(6)
+
+            if d(text='Playback paused').exists:
+                print("Playback paused")
+                logging.info("Playback paused")
+                return
+            
+            if d(description='Play').exists:
+                d(description='Play').click()
+                print("Clicked on Play")    
+
+            if d(text='Playback paused').exists:
+                print("Playback paused")
+                logging.info("Playback paused")
+                return
+            
+            if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').exists:
+                d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout[2]/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View').click()
+                print("Clicked on the Song being played")
+
+            while True:
+                if d(text=f'{duration}').exists():
+                    if d(resourceId='com.qobuz.music:id/playPauseBtn').exists:
+                        d(resourceId='com.qobuz.music:id/playPauseBtn').click()
+                        print("Song Paused")
+                        break
+
+            d.app_stop("com.qobuz.music")
+            del d
 
 # Main bot execution function for each device
 def bot_execution(udid, username, password, proxyserver, proxyport, album_urls, track_urls, artist_songs):
@@ -381,6 +422,7 @@ def bot_execution(udid, username, password, proxyserver, proxyport, album_urls, 
     # logout_account(d)
     logging.info(f"Bot execution completed on device {udid}")
     print(f"Bot execution completed on device {udid}")
+    del d
 
 # Function to get the list of connected devices
 def get_device_udids():
