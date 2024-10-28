@@ -78,20 +78,19 @@ def assign_proxy(d, username, proxyserver, proxyport):
     time.sleep(3)
 
 # Log into Qobuz
-def login_qobuz(device, username, password):
-    d=u2.connect(device.serial)
+def login_qobuz(d, username, password):
     with requests.Session() as session:  # Creates a session for reusing and closing connections
 
-        subprocess.call(f"adb -s {device.serial} shell pm clear com.qobuz.music --user 0 --cache")
+        subprocess.call(f"adb -s {d.serial} shell pm clear com.qobuz.music --user 0 --cache")
         time.sleep(2)
-        subprocess.call(f"adb -s {device.serial} shell pm clear com.qobuz.music")
+        subprocess.call(f"adb -s {d.serial} shell pm clear com.qobuz.music")
         
         # Start the Qobuz app and navigate to login using uiautomator2 on the device 'd'
         d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
         time.sleep(5)
         if d(resourceId='com.android.systemui:id/notification_stack_scroller').exists:
             print("Notification bar opened")
-            subprocess.call(f'adb -s {device.serial} shell input swipe 500 1500 500 500 300')
+            subprocess.call(f'adb -s {d.serial} shell input swipe 500 1500 500 500 300')
             print("Notification bar closed")
 
         if d(text="EXPLORE").exists:
@@ -107,8 +106,8 @@ def login_qobuz(device, username, password):
             del d  # Disconnect u2 after stopping the app
             return
 
-        logging.info(f"Device ID : {device.serial}\nLogging into Qobuz with email: {username} on device {device.serial}")
-        print(f"Logging into Qobuz with email: {username} on device {device.serial}")
+        logging.info(f"Device ID : {d.serial}\nLogging into Qobuz with email: {username} on device {d.serial}")
+        print(f"Logging into Qobuz with email: {username} on device {d.serial}")
         time.sleep(5)
         
         if d(text='Enter your email address').exists:
@@ -133,8 +132,8 @@ def login_qobuz(device, username, password):
         if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').exists:
             d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').click()
         else:
-            print("Error")
-        
+            print("Error, Unable to login")
+            return
         time.sleep(3)
 
         if d(text='YES').exists:
@@ -180,11 +179,11 @@ def select_content(d, album_urls, track_urls, artist_songs):
     return content_type, selected_content
 
 # Play selected content for a random duration
-def play_content(device, content_type, content):
+def play_content(d, content_type, content):
     selected_content = content[0]
     with requests.Session() as session:
-        d = u2.connect(device.serial)
-        print(device.serial)
+        # d = u2.connect(device.serial)
+        print(d.serial)
         
         play_duration = random.randint(config['play_time_min'], config['play_time_max'])
         minutes = play_duration // 60
@@ -202,7 +201,7 @@ def play_content(device, content_type, content):
             d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
             time.sleep(6)
 
-            logging.info(f"Device ID : {device.serial}\nSelected track: {selected_content}")
+            logging.info(f"Device ID : {d.serial}\nSelected track: {selected_content}")
             print(f"Selected track: {selected_content}")
 
             if d(text='Playback paused').exists:
@@ -267,7 +266,7 @@ def play_content(device, content_type, content):
             d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
             time.sleep(6)
 
-            logging.info(f"Device ID : {device.serial}\nSelected album: {selected_content}")
+            logging.info(f"Device ID : {d.serial}\nSelected album: {selected_content}")
             print(f"Selected album: {selected_content}")
 
             if d(text='Playback paused').exists:
@@ -317,7 +316,7 @@ def play_content(device, content_type, content):
             time.sleep(5)
             if d(resourceId='com.android.systemui:id/notification_stack_scroller').exists:
                 print("Notification bar opened")
-                subprocess.call(f'adb -s {device.serial} shell input swipe 500 1500 500 500 300')
+                subprocess.call(f'adb -s {d.serial} shell input swipe 500 1500 500 500 300')
                 print("Notification bar closed")
             if d(text="Samsung Keyboard").exists:
                 d(text="Agree").click()
@@ -337,7 +336,7 @@ def play_content(device, content_type, content):
                     print("Clicked on Search")
                     break
                 else:
-                    subprocess.call(f"adb -s {device.serial} shell input keyevent 4")
+                    subprocess.call(f"adb -s {d.serial} shell input keyevent 4")
                     time.sleep(3)
                     if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').exists:
                         d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').click()
@@ -402,28 +401,30 @@ def bot_execution(d, udid,username, password, proxyserver, proxyport, album_urls
 
         assign_proxy(d, username, proxyserver, proxyport)  # Step 2: Assign proxy and bind it
         
-        login_qobuz(d, username, password)   # Step 3: Login to Qobuz
+        state = login_qobuz(d, username, password)   # Step 3: Login to Qobuz
+        if state:
+            stream_limit = random.randint(config['stream_limit_min'], config['stream_limit_max'])
+            logging.info(f"Stream limit for account {username} on device {udid}: {stream_limit}")
+            print(f"Stream limit for account {username} on device {udid}: {stream_limit}")
 
-        stream_limit = random.randint(config['stream_limit_min'], config['stream_limit_max'])
-        logging.info(f"Stream limit for account {username} on device {udid}: {stream_limit}")
-        print(f"Stream limit for account {username} on device {udid}: {stream_limit}")
+            streams = 0
+            global total_streams
 
-        streams = 0
-        global total_streams
+            while streams < stream_limit:
+                content_type, selected_content = select_content(d, album_urls, track_urls, artist_songs)
+                # play_content(d, content_type, selected_content)
+                streams += 1
+                logging.info(f"Stream {streams} completed for account {username} on device {udid}")
+                print(f"Stream {streams} completed for account {username} on device {udid}")
+            os.system(f"title Total Streams: {total_streams}")
+            logging.info(f"Total Streams: {total_streams}")
+            total_streams += 1
+            # logout_account(d)
+            logging.info(f"Bot execution completed on device {udid}")
+            print(f"Bot execution completed on device {udid}")
 
-        while streams < stream_limit:
-            content_type, selected_content = select_content(d, album_urls, track_urls, artist_songs)
-            play_content(d, content_type, selected_content)
-            streams += 1
-            logging.info(f"Stream {streams} completed for account {username} on device {udid}")
-            print(f"Stream {streams} completed for account {username} on device {udid}")
-        os.system(f"title Total Streams: {total_streams}")
-        logging.info(f"Total Streams: {total_streams}")
-        total_streams += 1
-        # logout_account(d)
-        logging.info(f"Bot execution completed on device {udid}")
-        print(f"Bot execution completed on device {udid}")
     finally:
+        print("Closing connection")
         d.app_stop("com.qobuz.music")  # Ensure the app is stopped
         del d
 
@@ -443,96 +444,100 @@ def get_device_udids():
     return udids
 
 # Main function to launch threads for each device
-# def main():
-#     device_udids = get_device_udids()  # Step 1: Get connected devices
-#     accounts, album_urls, track_urls, artist_songs = load_inputs()  # Load the accounts and input data from CSV files
-    
-#     num_devices = len(device_udids)
-#     num_accounts = len(accounts)
-    
-#     if num_devices == 0:
-#         logging.info("No devices connected. Exiting.")
-#         print("No devices connected. Exiting.")
-#         return
-#     logging.info(f"Number of connected devices: {num_devices}")
-#     print(f"Number of connected devices: {num_devices}")
-    
-#     if num_accounts == 0:
-#         logging.info("No accounts available in accounts.csv.")
-#         print("No accounts available in accounts.csv.")
-#         return
-    
-#     logging.info(f"Total accounts available: {num_accounts}")
-#     print(f"Total accounts available: {num_accounts}")
-    
-#     # Divide the accounts into chunks based on the number of devices
-#     chunk_size = num_devices
-#     for i in range(0, num_accounts, chunk_size):
-#         threads = []
-#         # Assign each account to a device, if available
-#         accounts_chunk = accounts[i:i+chunk_size]
-#         for j, account in enumerate(accounts_chunk):
-#             device_udid = device_udids[j]  # Assign account to each device in sequence
-#             logging.info(f"Assigning account {account['username']} to device {device_udid}")
-#             print(f"Assigning account {account['username']} to device {device_udid}")
-#             # Create a new thread for each device and start it
-#             username = account['username']
-#             password = account['password']
-#             proxyserver =  account['pserver']
-#             proxyport = account['pport']
-#             # pusername = account['pusername']
-#             # ppassword = account['ppassword'] 
-
-#             t = threading.Thread(target=bot_execution, args=(device_udid, username,password,proxyserver, proxyport, album_urls, track_urls, artist_songs,))
-#             threads.append(t)
-#             t.start()
-
-#         # Wait for all threads in this batch to complete
-#         for t in threads:
-#             t.join()
-
-#         logging.info(f"Completed account execution batch {i // chunk_size + 1}")
-#         print(f"Completed account execution batch {i // chunk_size + 1}")
-
-#     logging.info("All accounts have been processed.")
-#     print("All accounts have been processed.")
 def main():
-    device_udids = get_device_udids()  # Get connected devices
-    accounts, album_urls, track_urls, artist_songs = load_inputs()
-
-    if not device_udids:
-        print("No devices connected.")
+    device_udids = get_device_udids()  # Step 1: Get connected devices
+    accounts, album_urls, track_urls, artist_songs = load_inputs()  # Load the accounts and input data from CSV files
+    
+    num_devices = len(device_udids)
+    num_accounts = len(accounts)
+    
+    if num_devices == 0:
+        logging.info("No devices connected. Exiting.")
+        print("No devices connected. Exiting.")
         return
-
-    # Pre-establish connections for all devices
+    logging.info(f"Number of connected devices: {num_devices}")
+    print(f"Number of connected devices: {num_devices}")
+    
+    if num_accounts == 0:
+        logging.info("No accounts available in accounts.csv.")
+        print("No accounts available in accounts.csv.")
+        return
+    
+    logging.info(f"Total accounts available: {num_accounts}")
+    print(f"Total accounts available: {num_accounts}")
+    
     connections = {udid: u2.connect(udid) for udid in device_udids}
 
-    # Start all devices simultaneously
-    threads = []
-    for i, udid in enumerate(device_udids):
-        account = accounts[i % len(accounts)]
-        username = account['username']
-        password = account['password']
-        proxyserver = account['pserver']
-        proxyport = account['pport']
+    # Divide the accounts into chunks based on the number of devices
+    chunk_size = num_devices
+    for i in range(0, num_accounts, chunk_size):
+        threads = []
+        # Assign each account to a device, if available
+        accounts_chunk = accounts[i:i+chunk_size]
+        for j, account in enumerate(accounts_chunk):
+            device_udid = device_udids[j]  # Assign account to each device in sequence
+            logging.info(f"Assigning account {account['username']} to device {device_udid}")
+            print(f"Assigning account {account['username']} to device {device_udid}")
+            # Create a new thread for each device and start it
+            username = account['username']
+            password = account['password']
+            proxyserver =  account['pserver']
+            proxyport = account['pport']
+            # pusername = account['pusername']
+            # ppassword = account['ppassword'] 
 
-        # Pass pre-established connection to bot_execution
-        thread = threading.Thread(target=bot_execution, args=(
-            connections[udid], udid, username, password, proxyserver, proxyport, album_urls, track_urls, artist_songs
-        ))
-        threads.append(thread)
-        thread.start()
+            t = threading.Thread(target=bot_execution, args=(connections[device_udid],device_udid, username,password,proxyserver, proxyport, album_urls, track_urls, artist_songs,))
+            threads.append(t)
+            time.sleep(2)
+            t.start()
+            
 
-    # Wait for all threads to complete
-    for thread in threads:
-        thread.join()
+        # Wait for all threads in this batch to complete
+        for t in threads:
+            t.join()
 
-    # Cleanup connections
-    for d in connections.values():
-        d.app_stop("com.qobuz.music")
-        del d
+        logging.info(f"Completed account execution batch {i // chunk_size + 1}")
+        print(f"Completed account execution batch {i // chunk_size + 1}")
 
-    print("All devices have been processed.")
+    logging.info("All accounts have been processed.")
+    print("All accounts have been processed.")
+# def main():
+#     device_udids = get_device_udids()  # Get connected devices
+#     accounts, album_urls, track_urls, artist_songs = load_inputs()
+
+#     if not device_udids:
+#         print("No devices connected.")
+#         return
+
+#     # Pre-establish connections for all devices
+#     connections = {udid: u2.connect(udid) for udid in device_udids}
+
+#     # Start all devices simultaneously
+#     threads = []
+#     for i, udid in enumerate(device_udids):
+#         account = accounts[i % len(accounts)]
+#         username = account['username']
+#         password = account['password']
+#         proxyserver = account['pserver']
+#         proxyport = account['pport']
+
+#         # Pass pre-established connection to bot_execution
+#         thread = threading.Thread(target=bot_execution, args=(
+#             connections[udid], udid, username, password, proxyserver, proxyport, album_urls, track_urls, artist_songs
+#         ))
+#         threads.append(thread)
+#         thread.start()
+
+#     # Wait for all threads to complete
+#     for thread in threads:
+#         thread.join()
+
+#     # Cleanup connections
+#     for d in connections.values():
+#         d.app_stop("com.qobuz.music")
+#         del d
+
+#     print("All devices have been processed.")
 
 # Entry point for the script
 if __name__ == "__main__":
