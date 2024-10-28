@@ -498,8 +498,6 @@ def main():
             threads.append(t)
             time.sleep(2)
             t.start()
-            print("Closing thread")
-            del d
 
         # Wait for all threads in this batch to complete
         for t in threads:
