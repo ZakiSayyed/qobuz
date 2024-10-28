@@ -24,9 +24,9 @@ logging.basicConfig(
 # Global configuration for the script
 config = {
     'stream_limit_min': 1,     # Minimum number of streams per account
-    'stream_limit_max': 3,     # Maximum number of streams per account
-    'play_time_min': 90,        # Minimum play time per track in seconds
-    'play_time_max': 130,       # Maximum play time per track in seconds
+    'stream_limit_max': 1,     # Maximum number of streams per account
+    'play_time_min': 60,        # Minimum play time per track in seconds
+    'play_time_max': 80,       # Maximum play time per track in seconds
     'content_distribution': {   # Percentage distribution for playing content
         'track': 100,
         'album': 0,
@@ -104,7 +104,7 @@ def login_qobuz(d, username, password):
         if d(text="Discover"):
             print("Logged in Already")
             d.app_stop("com.qobuz.music")
-            del d  # Disconnect u2 after stopping the app
+            # del d  # Disconnect u2 after stopping the app
             return
 
         logging.info(f"Device ID : {d.serial}\nLogging into Qobuz with email: {username} on device {d.serial}")
@@ -137,13 +137,13 @@ def login_qobuz(d, username, password):
             logging.info("Error, Unable to login")
             # return
         
-        time.sleep(3)
+        time.sleep(5)
 
         if d(text='YES').exists:
             d(text='YES').click()
             print("Clicked on YES")
             
-        time.sleep(3)
+        time.sleep(5)
 
         if d(text='Allow').exists:
             d(text='Allow').click()
@@ -152,12 +152,11 @@ def login_qobuz(d, username, password):
             d(text='ALLOW').click()
             print("Clicked on ALLOW access")
         
-        time.sleep(10)
+        time.sleep(15)
 
         if d(text="Discover").exists:
             print("Logged in ")
             d.app_stop("com.qobuz.music")
-            del d  # Disconnect u2 after stopping the app
             return True
 # Randomly select content type based on percentage distribution
 def select_content(d, album_urls, track_urls, artist_songs):
@@ -267,9 +266,10 @@ def play_content(d, content_type, content):
                         time.sleep(5)
 
                     print("Song added to playlist!")
-            
+
+            print("Stopping App")
             d.app_stop("com.qobuz.music")
-            del d  # Disconnect u2 after stopping the app
+            # del d  # Disconnect u2 after stopping the app
         elif content_type == 'album':
             time.sleep(5)
             d.shell(f"am start -a android.intent.action.VIEW -d '{selected_content}'")
@@ -317,7 +317,7 @@ def play_content(d, content_type, content):
             time.sleep(3)
 
             d.app_stop("com.qobuz.music")
-            del d  # Disconnect u2 after stopping the app
+            # del d  # Disconnect u2 after stopping the app
 
         elif content_type == 'artist_search':
 
@@ -399,7 +399,7 @@ def play_content(d, content_type, content):
                         break
 
             d.app_stop("com.qobuz.music")
-            del d
+            # del d
 
 # Main bot execution function for each device
 def bot_execution(d, udid,username, password, proxyserver, proxyport, album_urls, track_urls, artist_songs):
@@ -434,7 +434,7 @@ def bot_execution(d, udid,username, password, proxyserver, proxyport, album_urls
     finally:
         print("Closing connection")
         d.app_stop("com.qobuz.music")  # Ensure the app is stopped
-        del d
+        # del d
 
 # Function to get the list of connected devices
 def get_device_udids():
@@ -498,7 +498,8 @@ def main():
             threads.append(t)
             time.sleep(2)
             t.start()
-            
+            print("Closing thread")
+            del d
 
         # Wait for all threads in this batch to complete
         for t in threads:
