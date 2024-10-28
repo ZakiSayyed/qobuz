@@ -134,7 +134,9 @@ def login_qobuz(d, username, password):
             d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').click()
         else:
             print("Error, Unable to login")
-            return
+            logging.info("Error, Unable to login")
+            # return
+        
         time.sleep(3)
 
         if d(text='YES').exists:
@@ -151,7 +153,7 @@ def login_qobuz(d, username, password):
             print("Clicked on ALLOW access")
         
         time.sleep(2)
-        del d
+
 # Randomly select content type based on percentage distribution
 def select_content(d, album_urls, track_urls, artist_songs):
     content_type = random.choices(
