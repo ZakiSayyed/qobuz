@@ -5,6 +5,9 @@ import time
 import threading
 import subprocess
 import logging
+import os
+
+total_streams = 1
 
 # from super_proxy import setup_proxy_main
 from num_of_tracks import get_track_count
@@ -340,32 +343,7 @@ def play_content(device, content_type, content):
                     break
 
         d.app_stop("com.qobuz.music")
-        del d  # Disconnect u2 after stopping the app
-# Log out and switch accounts
-# def logout_account(device):
-#     d=u2.connect(device.serial)
-#     d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
-#     time.sleep(5)
-#     logging.info(f"Logging out on device {device.serial}")
-#     print(f"Logging out on device {device.serial}")
-#     # Add uiautomator2 action to log out
-#     if d(description='Settings').exists:
-#         d(description='Settings').click()
-#         print("Clicked on Settings")
-    
-#     time.sleep(3)
-    
-#     if d(text='Log out').exists:
-#         d(text='Log out').click()
-#         print("Clicked on Logout")
-    
-#     time.sleep(2)
-
-#     if d(text='OK').exists:
-#         d(text='OK').click()
-#         print("Clicked on OK")
-#         print("Successfully Logged out")
-#     time.sleep(5)
+        del d
 
 # Main bot execution function for each device
 def bot_execution(udid, username, password, proxyserver, proxyport, album_urls, track_urls, artist_songs):
@@ -382,13 +360,17 @@ def bot_execution(udid, username, password, proxyserver, proxyport, album_urls, 
     print(f"Stream limit for account {username} on device {udid}: {stream_limit}")
 
     streams = 0
+    global total_streams
+
     while streams < stream_limit:
         content_type, selected_content = select_content(d, album_urls, track_urls, artist_songs)
         play_content(d, content_type, selected_content)
         streams += 1
         logging.info(f"Stream {streams} completed for account {username} on device {udid}")
         print(f"Stream {streams} completed for account {username} on device {udid}")
-
+    os.system(f"title Total Streams: {total_streams}")
+    logging.info(f"Total Streams: {total_streams}")
+    total_streams += 1
     # logout_account(d)
     logging.info(f"Bot execution completed on device {udid}")
     print(f"Bot execution completed on device {udid}")
