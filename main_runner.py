@@ -288,7 +288,14 @@ def play_content(device, content_type, content):
 
         d.app_start("com.qobuz.music", "com.qobuz.android.mobile.app.screen.home.MainActivity")
         time.sleep(5)
-
+        if d(text="Samsung Keyboard").exists:
+            d(text="Agree").click()
+            print("Clicked on Agree")
+            logging.info("Clicked on Agree")
+        elif d(resourceId='android:id/button1').exists:
+            d(resourceId='android:id/button1').click()
+            print("Clicked on Agree")
+            logging.info("Clicked on Agree")
         while True:
             if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').exists:
                 d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.EditText/android.view.View[3]').click()
