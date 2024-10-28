@@ -79,6 +79,7 @@ def assign_proxy(d, username, proxyserver, proxyport):
 
 # Log into Qobuz
 def login_qobuz(d, username, password):
+    time.sleep(5)
     with requests.Session() as session:  # Creates a session for reusing and closing connections
 
         subprocess.call(f"adb -s {d.serial} shell pm clear com.qobuz.music --user 0 --cache")
@@ -127,7 +128,7 @@ def login_qobuz(d, username, password):
             d(text='Enter your password').click()
             d.send_keys(password)
 
-        time.sleep(3)
+        time.sleep(5)
 
         if d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').exists:
             d.xpath('/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/androidx.compose.ui.platform.ComposeView/android.view.View/android.view.View/android.view.View/android.widget.ScrollView/android.view.View[1]').click()
@@ -180,6 +181,7 @@ def select_content(d, album_urls, track_urls, artist_songs):
 
 # Play selected content for a random duration
 def play_content(d, content_type, content):
+    time.sleep(3)
     selected_content = content[0]
     with requests.Session() as session:
         # d = u2.connect(device.serial)
@@ -400,7 +402,6 @@ def bot_execution(d, udid,username, password, proxyserver, proxyport, album_urls
     try:
 
         assign_proxy(d, username, proxyserver, proxyport)  # Step 2: Assign proxy and bind it
-        
         state = login_qobuz(d, username, password)   # Step 3: Login to Qobuz
         if state:
             stream_limit = random.randint(config['stream_limit_min'], config['stream_limit_max'])
@@ -412,7 +413,7 @@ def bot_execution(d, udid,username, password, proxyserver, proxyport, album_urls
 
             while streams < stream_limit:
                 content_type, selected_content = select_content(d, album_urls, track_urls, artist_songs)
-                # play_content(d, content_type, selected_content)
+                play_content(d, content_type, selected_content)
                 streams += 1
                 logging.info(f"Stream {streams} completed for account {username} on device {udid}")
                 print(f"Stream {streams} completed for account {username} on device {udid}")
