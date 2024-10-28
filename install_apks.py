@@ -4,9 +4,12 @@ import os
 import time
 
 # Constants
+# APK_PATHS = {
+#     "com.qobuz.music": "qobuz.apk",  # Change to the path of your first APK file
+#     "com.scheler.superproxy": "super_proxy.apk"   # Change to the path of your second APK file
+# }
 APK_PATHS = {
     "com.qobuz.music": "qobuz.apk",  # Change to the path of your first APK file
-    "com.scheler.superproxy": "super_proxy.apk"   # Change to the path of your second APK file
 }
 PACKAGE_NAMES = list(APK_PATHS.keys())  # List of package names to check
 LOG_FILE = "install_log.txt"
