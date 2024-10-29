@@ -37,7 +37,6 @@ config = {
         'add_to_playlist': 50   # 100% chance to add the song to playlist
     }
 }
-# Load the inputs from CSV files
 def load_inputs():
     accounts = []
     album_urls = []
@@ -135,7 +134,7 @@ def login_qobuz(d, username, password):
         else:
             print("Error, Unable to login")
             logging.info("Error, Unable to login")
-            # return
+            return
         
         time.sleep(5)
 
@@ -158,8 +157,16 @@ def login_qobuz(d, username, password):
             print("Logged in ")
             d.app_stop("com.qobuz.music")
             return True
-# Randomly select content type based on percentage distribution
+        
+# Initialize indices to track the next item for each content type
+track_index = 0
+album_index = 0
+artist_index = 0
+
 def select_content(d, album_urls, track_urls, artist_songs):
+    global track_index, album_index, artist_index
+    
+    # Randomly select content type based on distribution
     content_type = random.choices(
         ['track', 'album', 'artist_search'],
         weights=[
@@ -169,20 +176,34 @@ def select_content(d, album_urls, track_urls, artist_songs):
         ],
         k=1
     )[0]
-
+    
+    # Select content based on type
     if content_type == 'track':
-        selected_content = random.choice(track_urls)
+        # Select the next track based on track_index
+        selected_content = track_urls[track_index]
         logging.info(f"Device ID : {d.serial}\nSelected track: {selected_content}")
         print(f"Selected track: {selected_content}")
+        
+        # Update the track index and reset if end of list is reached
+        track_index = (track_index + 1) % len(track_urls)
+
     elif content_type == 'album':
-        selected_content = random.choice(album_urls)
+        # Select the next album based on album_index
+        selected_content = album_urls[album_index]
         logging.info(f"Device ID : {d.serial}\nSelected album: {selected_content}")
         print(f"Selected album: {selected_content}")
+        
+        # Update the album index and reset if end of list is reached
+        album_index = (album_index + 1) % len(album_urls)
+
     elif content_type == 'artist_search':
-        selected_content = random.choice(artist_songs)
+        # Select the next artist based on artist_index
+        selected_content = artist_songs[artist_index]
         logging.info(f"Device ID : {d.serial}\nSelected artist/song search: {selected_content}")
         print(f"Selected artist/song search: {selected_content}")
-
+        
+        # Update the artist index and reset if end of list is reached
+        artist_index = (artist_index + 1) % len(artist_songs)
     return content_type, selected_content
 
 # Play selected content for a random duration
@@ -407,7 +428,7 @@ def bot_execution(d, udid,username, password, proxyserver, proxyport, album_urls
     print(f"Starting bot on device: {udid}")
     # d = u2.connect(udid)  # Connect to the device with specific UDID
     try:
-
+        state=True
         assign_proxy(d, username, proxyserver, proxyport)  # Step 2: Assign proxy and bind it
         state = login_qobuz(d, username, password)   # Step 3: Login to Qobuz
         if state:
@@ -421,12 +442,14 @@ def bot_execution(d, udid,username, password, proxyserver, proxyport, album_urls
             while streams < stream_limit:
                 content_type, selected_content = select_content(d, album_urls, track_urls, artist_songs)
                 play_content(d, content_type, selected_content)
+                print("Selected content = ",selected_content)
+                os.system(f"title Total Streams: {total_streams}")
+                logging.info(f"Total Streams: {total_streams}")
+                total_streams += 1
                 streams += 1
                 logging.info(f"Stream {streams} completed for account {username} on device {udid}")
                 print(f"Stream {streams} completed for account {username} on device {udid}")
-            os.system(f"title Total Streams: {total_streams}")
-            logging.info(f"Total Streams: {total_streams}")
-            total_streams += 1
+
             # logout_account(d)
             logging.info(f"Bot execution completed on device {udid}")
             print(f"Bot execution completed on device {udid}")
@@ -454,60 +477,60 @@ def get_device_udids():
 # Main function to launch threads for each device
 def main():
     device_udids = get_device_udids()  # Step 1: Get connected devices
-    accounts, album_urls, track_urls, artist_songs = load_inputs()  # Load the accounts and input data from CSV files
-    
-    num_devices = len(device_udids)
-    num_accounts = len(accounts)
-    
-    if num_devices == 0:
+    connections = {udid: u2.connect(udid) for udid in device_udids}
+
+    if not device_udids:
         logging.info("No devices connected. Exiting.")
         print("No devices connected. Exiting.")
         return
-    logging.info(f"Number of connected devices: {num_devices}")
-    print(f"Number of connected devices: {num_devices}")
-    
-    if num_accounts == 0:
-        logging.info("No accounts available in accounts.csv.")
-        print("No accounts available in accounts.csv.")
-        return
-    
-    logging.info(f"Total accounts available: {num_accounts}")
-    print(f"Total accounts available: {num_accounts}")
-    
-    connections = {udid: u2.connect(udid) for udid in device_udids}
 
-    # Divide the accounts into chunks based on the number of devices
-    chunk_size = num_devices
-    for i in range(0, num_accounts, chunk_size):
-        threads = []
-        # Assign each account to a device, if available
-        accounts_chunk = accounts[i:i+chunk_size]
-        for j, account in enumerate(accounts_chunk):
-            device_udid = device_udids[j]  # Assign account to each device in sequence
-            logging.info(f"Assigning account {account['username']} to device {device_udid}")
-            print(f"Assigning account {account['username']} to device {device_udid}")
-            # Create a new thread for each device and start it
-            username = account['username']
-            password = account['password']
-            proxyserver =  account['pserver']
-            proxyport = account['pport']
-            # pusername = account['pusername']
-            # ppassword = account['ppassword'] 
+    logging.info(f"Number of connected devices: {len(device_udids)}")
+    print(f"Number of connected devices: {len(device_udids)}")
 
-            t = threading.Thread(target=bot_execution, args=(connections[device_udid],device_udid, username,password,proxyserver, proxyport, album_urls, track_urls, artist_songs,))
-            threads.append(t)
-            time.sleep(2)
-            t.start()
+    while True:  # Infinite loop to restart the process when all accounts are processed
+        accounts, album_urls, track_urls, artist_songs = load_inputs()  # Reload accounts each loop
+        num_accounts = len(accounts)
 
-        # Wait for all threads in this batch to complete
-        for t in threads:
-            t.join()
+        if num_accounts == 0:
+            logging.info("No accounts available in accounts.csv.")
+            print("No accounts available in accounts.csv.")
+            return
 
-        logging.info(f"Completed account execution batch {i // chunk_size + 1}")
-        print(f"Completed account execution batch {i // chunk_size + 1}")
+        logging.info(f"Total accounts available: {num_accounts}")
+        print(f"Total accounts available: {num_accounts}")
 
-    logging.info("All accounts have been processed.")
-    print("All accounts have been processed.")
+        # Divide the accounts into chunks based on the number of devices
+        chunk_size = len(device_udids)
+        
+        for i in range(0, num_accounts, chunk_size):
+            threads = []
+            # Assign each account to a device, if available
+            accounts_chunk = accounts[i:i + chunk_size]
+            for j, account in enumerate(accounts_chunk):
+                device_udid = device_udids[j]  # Assign account to each device in sequence
+                logging.info(f"Assigning account {account['username']} to device {device_udid}")
+                print(f"Assigning account {account['username']} to device {device_udid}")
+
+                username = account['username']
+                password = account['password']
+                proxyserver = account['pserver']
+                proxyport = account['pport']
+
+                # Create a new thread for each device and start it
+                t = threading.Thread(target=bot_execution, args=(connections[device_udid], device_udid, username, password, proxyserver, proxyport, album_urls, track_urls, artist_songs,))
+                threads.append(t)
+                time.sleep(2)
+                t.start()
+
+            # Wait for all threads in this batch to complete
+            for t in threads:
+                t.join()
+
+            logging.info(f"Completed account execution batch {i // chunk_size + 1}")
+            print(f"Completed account execution batch {i // chunk_size + 1}")
+
+        logging.info("All accounts have been processed. Restarting from the first account.")
+        print("All accounts have been processed. Restarting from the first account.")
 # def main():
 #     device_udids = get_device_udids()  # Get connected devices
 #     accounts, album_urls, track_urls, artist_songs = load_inputs()
